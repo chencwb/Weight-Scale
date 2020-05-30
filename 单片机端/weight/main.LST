@@ -1,0 +1,263 @@
+C51 COMPILER V9.01   MAIN                                                                  01/07/2020 16:46:51 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "LCD1602.h"
+   3          #include "HX711.h"
+   4          #define uchar unsigned char  //Œﬁ∑˚∫≈◊÷∑˚–Õ ∫Í∂®“Â      ±‰¡ø∑∂Œß0~255
+   5          #define uint  unsigned int       //Œﬁ∑˚∫≈’˚–Õ ∫Í∂®“Â    ±‰¡ø∑∂Œß0~65535
+   6          
+   7          
+   8          //∂®“Â±‰¡ø
+   9          unsigned long HX711_Buffer = 0;  //”√¿¥¥Ê∑≈HX711∂¡»°≥ˆ¿¥µƒ ˝æ›
+  10          unsigned long Weight_Maopi = 0; //”√¿¥¥Ê∑≈√´∆§ ˝æ›
+  11          long Weight_Shiwu = 0;          //”√¿¥¥Ê∑≈ µŒÔ÷ÿ¡ø
+  12          unsigned char Max_Value = 95;             //”√¿¥¥Ê∑≈…Ë÷√◊Ó¥Û÷µ
+  13          
+  14          
+  15          uint GapValue= 228;        //¥´∏–∆˜«˙¬ 
+  16          
+  17          
+  18          //±®æØ÷µ£¨µ•Œª «g
+  19          #define AlarmValue 100000       
+  20          
+  21          //Ω” ’∑¢ÀÕ«¯
+  22          #define USART_MAX_RECV_LEN      40
+  23          uchar USART_RX_BUF[USART_MAX_RECV_LEN];
+  24          uint USART_RX_STA=0; 
+  25          
+  26          //****************************************************
+  27          //≥ı ºªØ
+  28          //****************************************************
+  29          void UsartInit()
+  30          {
+  31   1              SCON=0X50;                      //…Ë÷√Œ™π§◊˜∑Ω Ω1
+  32   1              TMOD=0X20;                      //…Ë÷√º∆ ˝∆˜π§◊˜∑Ω Ω2
+  33   1              PCON=0X80;                      //≤®Ãÿ¬ º”±∂
+  34   1              TH1=0XFa;                       //º∆ ˝∆˜≥ı º÷µ…Ë÷√£¨◊¢“‚≤®Ãÿ¬  «9600µƒ
+  35   1              TL1=0XFa;
+  36   1              ES=1;                                           //¥Úø™Ω” ’÷–∂œ
+  37   1              EA=1;                                           //¥Úø™◊‹÷–∂œ
+  38   1              TR1=1;                                  //¥Úø™º∆ ˝∆˜
+  39   1      }
+  40          
+  41          
+  42          
+  43          void UART_SendData(char dat)
+  44          {
+  45   1              ES = 0;
+  46   1              SBUF = dat;
+  47   1              while(!TI);
+  48   1              TI = 0;
+  49   1              ES = 1;
+  50   1      }               
+  51          
+  52          
+  53          //****************************************************
+  54          //÷˜∫Ø ˝
+  55          //****************************************************
+C51 COMPILER V9.01   MAIN                                                                  01/07/2020 16:46:51 PAGE 2   
+
+  56          void main()
+  57          {
+  58   1              uchar flag = 0;
+  59   1              uint chazhi = 0;
+  60   1              uint shiwei = 0;
+  61   1              uint gewei = 0;
+  62   1              uint shifenwei = 0;
+  63   1              uint baifenwei = 0;
+  64   1      
+  65   1              uint qian = 0;
+  66   1              uint hou = 0;
+  67   1      
+  68   1              uint pastData = 0;
+  69   1              uint pastData2 = 0;
+  70   1              
+  71   1      
+  72   1              Init_LCD1602();         //≥ı ºªØLCD1602
+  73   1              UsartInit();  //¥Æø⁄≥ı ºªØ
+  74   1              LCD1602_write_com(0x80);                        //…Ë÷√LCD1602÷∏’Î
+  75   1              LCD1602_write_word("Welcome to use!");
+  76   1              
+  77   1              Get_Maopi();
+  78   1              Get_Maopi();
+  79   1              Delay_ms(2000);          //—” ±2s
+  80   1              Get_Maopi();
+  81   1              Get_Maopi();                            //≥∆√´∆§÷ÿ¡ø    //∂‡¥Œ≤‚¡ø”–¿˚”⁄HX711Œ»∂®
+  82   1          LCD1602_write_com(0x01);    //«Â∆¡
+  83   1          
+  84   1              
+  85   1      
+  86   1              while(1)
+  87   1              {
+  88   2                 
+  89   2                  //Scan_Key();
+  90   2              Get_Weight();           
+  91   2      
+  92   2                      shiwei = Weight_Shiwu%100000/10000;
+  93   2                      gewei = Weight_Shiwu%10000/1000;
+  94   2                      shifenwei = Weight_Shiwu%1000/100;
+  95   2                      baifenwei = Weight_Shiwu%100/10;
+  96   2      
+  97   2                      qian = 100 + 10*shiwei + gewei;
+  98   2                      hou = 10*shifenwei + baifenwei;
+  99   2      
+ 100   2                      if(hou > pastData2)
+ 101   2                      {
+ 102   3                              chazhi = hou - pastData2;
+ 103   3                      }else{
+ 104   3                              chazhi = pastData2 - hou;
+ 105   3                      }
+ 106   2                      
+ 107   2                      if(qian == 0 && hou < 5){
+ 108   3                      //º∏∫ı√ª∑≈∂´Œ˜
+ 109   3                              //œ‘ æµ±«∞÷ÿ¡ø
+ 110   3                              LCD1602_write_com(0x80);
+ 111   3                      LCD1602_write_word(" Weight=");
+ 112   3                      //LCD1602_write_data(Weight_Shiwu/100000 + 0x30);
+ 113   3                      LCD1602_write_data(Weight_Shiwu%100000/10000 + 0x30);
+ 114   3                              LCD1602_write_data(Weight_Shiwu%10000/1000 + 0x30);
+ 115   3                              LCD1602_write_data('.');
+ 116   3                              LCD1602_write_data(Weight_Shiwu%1000/100 + 0x30);
+ 117   3                              LCD1602_write_data(Weight_Shiwu%100/10 + 0x30);
+C51 COMPILER V9.01   MAIN                                                                  01/07/2020 16:46:51 PAGE 3   
+
+ 118   3                              //LCD1602_write_data(Weight_Shiwu%10 + 0x30);   
+ 119   3              
+ 120   3                              LCD1602_write_word("Kg");
+ 121   3                              UART_SendData(qian);
+ 122   3                              UART_SendData(hou);     
+ 123   3                              flag = 0;
+ 124   3                      } else if(qian == pastData && chazhi<10){
+ 125   3                              if(flag<10){
+ 126   4                              //≥¨π˝10≤ª∑¢ÀÕ
+ 127   4                              //œ‘ æµ±«∞÷ÿ¡ø
+ 128   4                              LCD1602_write_com(0x80);
+ 129   4                      LCD1602_write_word(" Weight=");
+ 130   4                      //LCD1602_write_data(Weight_Shiwu/100000 + 0x30);
+ 131   4                      LCD1602_write_data(Weight_Shiwu%100000/10000 + 0x30);
+ 132   4                              LCD1602_write_data(Weight_Shiwu%10000/1000 + 0x30);
+ 133   4                              LCD1602_write_data('.');
+ 134   4                              LCD1602_write_data(Weight_Shiwu%1000/100 + 0x30);
+ 135   4                              LCD1602_write_data(Weight_Shiwu%100/10 + 0x30);
+ 136   4                              //LCD1602_write_data(Weight_Shiwu%10 + 0x30);   
+ 137   4              
+ 138   4                              LCD1602_write_word("Kg");
+ 139   4                              UART_SendData(qian);
+ 140   4                              UART_SendData(hou);
+ 141   4                              flag++;
+ 142   4                              }
+ 143   3                      }else{
+ 144   3                              flag = 0;
+ 145   3                                              
+ 146   3                              LCD1602_write_com(0x80);
+ 147   3                      LCD1602_write_word(" Weight=");
+ 148   3                      //LCD1602_write_data(Weight_Shiwu/100000 + 0x30);
+ 149   3                      LCD1602_write_data(Weight_Shiwu%100000/10000 + 0x30);
+ 150   3                              LCD1602_write_data(Weight_Shiwu%10000/1000 + 0x30);
+ 151   3                              LCD1602_write_data('.');
+ 152   3                              LCD1602_write_data(Weight_Shiwu%1000/100 + 0x30);
+ 153   3                              LCD1602_write_data(Weight_Shiwu%100/10 + 0x30);
+ 154   3                              //LCD1602_write_data(Weight_Shiwu%10 + 0x30);   
+ 155   3              
+ 156   3                              LCD1602_write_word("Kg");
+ 157   3                              UART_SendData(qian);
+ 158   3                              UART_SendData(hou);
+ 159   3                      
+ 160   3                              pastData = qian;
+ 161   3                              pastData2 = hou;
+ 162   3              
+ 163   3                      }
+ 164   2      
+ 165   2                      
+ 166   2              
+ 167   2                      
+ 168   2      
+ 169   2              
+ 170   2              
+ 171   2              //≥¨œﬁ±®æØ
+ 172   2              if(Weight_Shiwu/1000 >= Max_Value || Weight_Shiwu >= AlarmValue) //≥¨π˝…Ë÷√◊Ó¥Û÷µªÚ’ﬂ¥´∏–∆˜±æ…Ì¡ø≥
+             -Ã◊Ó¥Û÷µ±®æØ        
+ 173   2                      {
+ 174   3                              Buzzer = 0;     //Buzzer¥˙±Ì∑‰√˘∆˜Ã· æ°£
+ 175   3                      }
+ 176   2                      else
+ 177   2                      {
+ 178   3                              Buzzer = 1;
+C51 COMPILER V9.01   MAIN                                                                  01/07/2020 16:46:51 PAGE 4   
+
+ 179   3                      }
+ 180   2                      //Delay_ms(100);
+ 181   2                      
+ 182   2              }       
+ 183   1      }
+ 184          
+ 185          
+ 186          
+ 187          
+ 188          //****************************************************
+ 189          //≥∆÷ÿ
+ 190          //****************************************************
+ 191          void Get_Weight()
+ 192          {
+ 193   1              Weight_Shiwu = HX711_Read();
+ 194   1              Weight_Shiwu = Weight_Shiwu - Weight_Maopi;             //ªÒ»°æª÷ÿ
+ 195   1              if(Weight_Shiwu >= 0)                   
+ 196   1              {       
+ 197   2                      Weight_Shiwu = (unsigned long)((float)(Weight_Shiwu/GapValue)*10);      //º∆À„ µŒÔµƒ µº ÷ÿ¡ø
+ 198   2              }
+ 199   1              else
+ 200   1              {
+ 201   2                      Weight_Shiwu = 0;
+ 202   2              }
+ 203   1              
+ 204   1      }
+ 205          
+ 206          //****************************************************
+ 207          //ªÒ»°√´∆§÷ÿ¡ø
+ 208          //****************************************************
+ 209          void Get_Maopi()
+ 210          {
+ 211   1              Weight_Maopi = HX711_Read();    
+ 212   1      } 
+ 213          
+ 214          
+ 215          //****************************************************
+ 216          //MS—” ±∫Ø ˝(12Mæß’Òœ¬≤‚ ‘)
+ 217          //****************************************************
+ 218          void Delay_ms(unsigned int n)
+ 219          {
+ 220   1              unsigned int  i,j;
+ 221   1              for(i=0;i<n;i++)
+ 222   1                      for(j=0;j<123;j++);
+ 223   1      }
+ 224          
+ 225          
+ 226          
+ 227          
+ 228          
+ 229          
+ 230          
+ 231          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1269    ----
+   CONSTANT SIZE    =     28    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     57      19
+   IDATA SIZE       =   ----    ----
+C51 COMPILER V9.01   MAIN                                                                  01/07/2020 16:46:51 PAGE 5   
+
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">体重仪</string>
+    <string name="bmiSuggestion1">按BMI中国标准，身体状态为偏瘦</string>
+    <string name="bmiSuggestion2">按BMI中国标准，身体状态为正常</string>
+    <string name="bmiSuggestion3">按BMI中国标准，身体状态为过重</string>
+    <string name="bmiSuggestion4">按BMI中国标准，身体状态为肥胖</string>
+</resources>

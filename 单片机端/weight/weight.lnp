@@ -1,0 +1,5 @@
+"main.obj",
+"lcd.obj",
+"hx711.obj" 
+TO "weight" 
+RAMSIZE(256) 
